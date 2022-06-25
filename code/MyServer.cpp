@@ -49,7 +49,11 @@ SOFTWARE.
 using boost::asio::ip::tcp;
 using namespace std;
 
-
+#if BOOST_VERSION >= 107000
+#define GET_IO_SERVICE(s) ((boost::asio::io_context&)(s).get_executor().context())
+#else
+#define GET_IO_SERVICE(s) ((s).get_io_service())
+#endif
 
 
 extern tcp_server *ser;
@@ -419,9 +423,9 @@ void tcp_server::run_network()
     for( int i=0; i<peers.size(); i++){
         if( !peers[i].connected /* || peers[i].session == NULL */){
 
-  //          peers[i].session = make_shared<tcp_connection>(acceptor_.get_io_service());
+  //          peers[i].session = make_shared<tcp_connection>(GET_IO_SERVICE(acceptor_));
           try{
-            peers[i].session = tcp_connection::create(acceptor_.get_io_service());
+            peers[i].session = tcp_connection::create(GET_IO_SERVICE(acceptor_));
           }
           catch(...){
             cout << "Creating session threw... nothing major..."<<endl;
@@ -432,7 +436,7 @@ void tcp_server::run_network()
 
           if ( peers[i]._strand == NULL ){
             try{
-              peers[i]._strand = new boost::asio::io_service::strand( acceptor_.get_io_service() );
+              peers[i]._strand = new boost::asio::io_service::strand(GET_IO_SERVICE(acceptor_));
             }
             catch(...){
               cout <<"Creating strand threw... nothing major..."<<endl;
@@ -640,7 +644,7 @@ void tcp_server::run_network()
 
 void tcp_server::start_accept()
 {
-    tcp_connection::pointer new_connection = tcp_connection::create(acceptor_.get_io_service());
+    tcp_connection::pointer new_connection = tcp_connection::create(GET_IO_SERVICE(acceptor_));
     new_connection->id = rng();
 
 
